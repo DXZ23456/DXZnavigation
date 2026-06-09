@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DXZ Navigation</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0f;
+            --card-bg: #12121a;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --accent-repo: #4dabf7;
+            --accent-demo: #00ff9d;
+            --border: #22223a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            margin-bottom: 10px;
+            color: var(--accent-demo);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+        }
+
+        header p {
+            color: var(--text-secondary);
+            margin-bottom: 25px;
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+        }
+
+        .toggle-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .toggle-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn[data-mode="repo"]:hover,
+        .toggle-btn[data-mode="repo"].active {
+            border-color: var(--accent-repo);
+            color: var(--accent-repo);
+        }
+
+        .toggle-btn[data-mode="demo"]:hover,
+        .toggle-btn[data-mode="demo"].active {
+            border-color: var(--accent-demo);
+            color: var(--accent-demo);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            text-decoration: none;
+            transition: all 0.35s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 165px;
+        }
+
+        .card.repo:hover {
+            border-color: var(--accent-repo);
+            box-shadow: 0 10px 30px rgba(77, 171, 247, 0.08);
+        }
+
+        .card.demo:hover {
+            border-color: var(--accent-demo);
+            box-shadow: 0 10px 30px rgba(0, 255, 157, 0.08);
+        }
+
+        .card-icon {
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: clamp(1.1rem, 3vw, 1.5rem);
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            font-size: clamp(0.82rem, 2vw, 0.92rem);
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+
+        .card-link-type {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 12px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        .card.repo .card-link-type {
+            background: rgba(77, 171, 247, 0.15);
+            color: var(--accent-repo);
+            border: 1px solid var(--accent-repo);
+        }
+
+        .card.demo .card-link-type {
+            background: rgba(0, 255, 157, 0.15);
+            color: var(--accent-demo);
+            border: 1px solid var(--accent-demo);
+        }
+
+        footer {
+            margin-top: 50px;
+            color: var(--text-secondary);
+            font-size: 0.78rem;
+        }
+
+        .loading {
+            color: var(--accent-demo);
+            font-family: monospace;
+            opacity: 0.7;
+        }
+
+        .error {
+            color: #ff5555;
+            padding: 20px;
+            border: 1px dashed #ff5555;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DXZ Navigation</h1>
+            <p>// 暗色宇宙 · 极客中心</p>
+        </header>
+
+        <div class="toggle-bar">
+            <button class="toggle-btn active" data-mode="repo">查看仓库</button>
+            <button class="toggle-btn" data-mode="demo">查看演示</button>
+        </div>
+
+        <main id="nav-grid" class="grid">
+            <div class="loading">正在连接星图数据库...</div>
+        </main>
+
+        <footer>
+            <p>© 2026 dxz23456 | Built with Vanilla JS | 项目数: <span id="project-count">0</span></p>
+        </footer>
+    </div>
+
+    <script>
+        // ---------- 预设数据 ----------
+        const presetRepos = [
+            { name: "404Planet", repoUrl: "https://github.com/DXZ23456/404Planet", pagesUrl: "https://dxz23456.github.io/404Planet/", desc: null, icon: "🪐" },
+            { name: "Enjoy", repoUrl: "https://github.com/DXZ23456/Enjoy", pagesUrl: "https://dxz23456.github.io/Enjoy/", desc: null, icon: "😂" },
+            { name: "Focus-Pomodoro-Timer", repoUrl: "https://github.com/DXZ23456/Focus-Pomodoro-Timer", pagesUrl: "https://dxz23456.github.io/Focus-Pomodoro-Timer/", desc: null, icon: "⏱️" },
+            { name: "macos", repoUrl: "https://github.com/DXZ23456/macos", pagesUrl: "https://dxz23456.github.io/macos/", desc: null, icon: "🍎" },
+            { name: "Matrix-Digital-Rain", repoUrl: "https://github.com/DXZ23456/Matrix-Digital-Rain", pagesUrl: "https://dxz23456.github.io/Matrix-Digital-Rain/", desc: null, icon: "💾" }
+        ];
+
+        const iconPool = ['🪐','💾','😂','🚀','🐙','🌌','🎮','🔮','⚡','🔥','💻','📡','🧩','🎯','🛸','🤖'];
+
+        // ---------- 状态 ----------
+        let currentMode = 'repo';
+        let navData = [];
+
+        // ---------- DOM 引用 ----------
+        const grid = document.getElementById('nav-grid');
+        const countSpan = document.getElementById('project-count');
+        const toggleBtns = document.querySelectorAll('.toggle-btn');
+
+        // ---------- 工具函数 ----------
+        function randomIcon() {
+            return iconPool[Math.floor(Math.random() * iconPool.length)];
+        }
+
+        function fmtDesc(d) {
+            return (d && d.trim()) ? d : '暂无描述';
+        }
+
+        // 从API数据构建导航项（优先使用 homepage 作为演示链接）
+        function buildFromApi(repos) {
+            return repos.map(r => ({
+                name: r.name,
+                repoUrl: r.html_url,
+                // 如果仓库设置了 Website（homepage），就用它；否则演示链接为 null
+                pagesUrl: r.homepage ? r.homepage : null,
+                desc: r.description,
+                icon: randomIcon(),
+                fork: r.fork
+            }));
+        }
+
+        // 渲染卡片
+        function render(data) {
+            grid.innerHTML = '';
+            if (!data || data.length === 0) {
+                grid.innerHTML = '<div class="error">没有可显示的项目</div>';
+                countSpan.textContent = '0';
+                return;
+            }
+
+            // 演示模式下只显示有演示链接的项目
+            const filteredData = currentMode === 'demo'
+                ? data.filter(item => item.pagesUrl)
+                : data;
+
+            if (filteredData.length === 0) {
+                grid.innerHTML = '<div class="error" style="grid-column:1/-1"><p>⚠️ 演示模式下没有可用的项目</p><p>请为项目在 GitHub 仓库设置中添加 Website 链接</p></div>';
+                countSpan.textContent = '0';
+                return;
+            }
+
+            filteredData.forEach(item => {
+                const card = document.createElement('a');
+                card.className = `card ${currentMode}`;
+
+                const link = currentMode === 'repo' ? item.repoUrl : item.pagesUrl;
+                card.href = link;
+
+                const forkBadge = item.fork ? '<span style="font-size:0.75em;opacity:0.6;"> (fork)</span>' : '';
+                const linkTypeText = currentMode === 'repo' ? '查看仓库' : '查看演示';
+
+                card.innerHTML = `
+                    <div class="card-icon">${item.icon}</div>
+                    <div class="card-title">${item.name}${forkBadge}</div>
+                    <div class="card-desc">${fmtDesc(item.desc)}</div>
+                    <div class="card-link-type">${linkTypeText}</div>
+                `;
+
+                const isInternal = link.includes('dxz23456.github.io');
+                if (!isInternal) {
+                    card.target = '_blank';
+                    card.rel = 'noopener noreferrer';
+                }
+
+                grid.appendChild(card);
+            });
+
+            countSpan.textContent = filteredData.length;
+        }
+
+        // ---------- 三级加载 ----------
+        async function loadNavigation() {
+            grid.innerHTML = '<div class="loading">正在连接星图数据库...</div>';
+
+            let repos = null;
+
+            // 第一级：GitHub API
+            try {
+                const res = await fetch('https://api.github.com/users/dxz23456/repos?per_page=100&sort=full_name&direction=asc');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const apiData = await res.json();
+                repos = buildFromApi(apiData);
+                console.log('✅ 从 GitHub API 加载成功，获取到', repos.length, '个项目');
+            } catch (e) {
+                console.warn('❌ API 加载失败:', e.message);
+            }
+
+            // 第二级：nav.json
+            if (!repos) {
+                try {
+                    const res = await fetch('https://dxz23456.github.io/DXZnavigation/nav.json');
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    repos = await res.json();
+                    console.log('✅ 从 nav.json 加载成功');
+                } catch (e) {
+                    console.warn('❌ nav.json 加载失败:', e.message);
+                }
+            }
+
+            // 第三级：预设
+            if (!repos || repos.length === 0) {
+                console.warn('⚠️ 使用预设数据');
+                repos = presetRepos;
+                grid.innerHTML = `<div class="error"><p>⚠️ 远程数据加载失败，使用本地预设</p></div>`;
+            }
+
+            navData = repos;
+            render(navData);
+        }
+
+        // ---------- 切换模式 ----------
+        function switchMode(mode) {
+            currentMode = mode;
+            toggleBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            if (navData.length > 0) {
+                render(navData);
+            }
+        }
+
+        // ---------- 事件绑定 ----------
+        toggleBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchMode(btn.dataset.mode);
+            });
+        });
+
+        // ---------- 启动 ----------
+        document.addEventListener('DOMContentLoaded', loadNavigation);
+    </script>
+</body>
+</html>
